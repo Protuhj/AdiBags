@@ -30,13 +30,10 @@ local format = _G.format
 local GetContainerItemID = C_Container and _G.C_Container.GetContainerItemID or _G.GetContainerItemID
 local GetContainerItemInfo = C_Container and _G.C_Container.GetContainerItemInfo or _G.GetContainerItemInfo
 local GetContainerItemLink = C_Container and _G.C_Container.GetContainerItemLink or _G.GetContainerItemLink
-local GetContainerItemQuestInfo = C_Container and _G.C_Container.GetContainerItemQuestInfo or _G.GetContainerItemQuestInfo
 local GetContainerNumFreeSlots = C_Container and _G.C_Container.GetContainerNumFreeSlots or _G.GetContainerNumFreeSlots
 local GetItemInfo = _G.C_Item.GetItemInfo
-local GetItemQualityColor = _G.GetItemQualityColor
 local hooksecurefunc = _G.hooksecurefunc
 local IsBattlePayItem = C_Container and _G.C_Container.IsBattlePayItem or _G.IsBattlePayItem or function(...) return false end
-local IsContainerItemAnUpgrade = _G.IsContainerItemAnUpgrade
 local IsInventoryItemLocked = _G.IsInventoryItemLocked
 local SplitContainerItem = C_Container and _G.C_Container.SplitContainerItem or _G.SplitContainerItem
 local ITEM_QUALITY_COMMON
@@ -78,7 +75,7 @@ local buttonClass, buttonProto
 if addon.isRetail then
 	buttonClass, buttonProto = addon:NewClass("ItemButton", "ItemButton", "ContainerFrameItemButtonTemplate", "ABEvent-1.0")
 else
-	buttonClass, buttonProto = addon:NewClass("ItemButton", "Button", "ContainerFrameItemButtonTemplate", "ABEvent-1.0")
+	buttonClass, buttonProto = addon:NewClass("ItemButton", "Button", "ItemButtonTemplate", "ABEvent-1.0")
 end
 
 local childrenNames = { "Cooldown", "IconBorder", "IconTexture", "IconQuestTexture", "Count", "Stock", "NormalTexture", "NewItemTexture", "IconOverlay2", "ItemContextOverlay" }
@@ -90,6 +87,7 @@ function buttonProto:OnCreate()
 			self[childName] = _G[name..childName]
 		end
 	end
+
 	self:RegisterForDrag("LeftButton")
 	self:RegisterForClicks("LeftButtonUp","RightButtonUp")
 	self:SetScript('OnShow', self._OnShow)
@@ -152,7 +150,7 @@ bankButtonClass.frameTemplate = "BankItemButtonGenericTemplate"
 
 function bankButtonProto:OnAcquire(container, bag, slot)
 	self.GetInventorySlot = nil -- Remove the method added by the template
-	self.inventorySlot = bag == REAGENTBANK_CONTAINER and ReagentBankButtonIDToInvSlotID(slot) or BankButtonIDToInvSlotID(slot)
+	self.inventorySlot = BankButtonIDToInvSlotID(slot)
 	return buttonProto.OnAcquire(self, container, bag, slot)
 end
 
@@ -169,7 +167,7 @@ function bankButtonProto:GetInventorySlot()
 end
 
 function bankButtonProto:UpdateUpgradeIcon()
-	if self.bag ~= BANK_CONTAINER and self.bag ~= REAGENTBANK_CONTAINER then
+	if self.bag ~= BANK_CONTAINER then
 		buttonProto.UpdateUpgradeIcon(self)
 	end
 end
@@ -182,7 +180,7 @@ local containerButtonPool = addon:CreatePool(buttonClass)
 local bankButtonPool = addon:CreatePool(bankButtonClass)
 
 function addon:AcquireItemButton(container, bag, slot)
-	if bag == BANK_CONTAINER or bag == REAGENTBANK_CONTAINER then
+	if bag == BANK_CONTAINER then
 		return bankButtonPool:Acquire(container, bag, slot)
 	else
 		return containerButtonPool:Acquire(container, bag, slot)
@@ -460,7 +458,7 @@ if addon.isRetail then
 end
 
 local function GetBorder(quality, isQuestItem, questId, isQuestActive, settings)
-	if addon.isRetail or addon.isWrath then
+	if addon.isRetail or addon.isWrath or addon.isCata then
 		if settings.questIndicator then
 			if questId and not isQuestActive then
 				return TEXTURE_ITEM_QUEST_BANG

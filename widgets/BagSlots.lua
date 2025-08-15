@@ -39,9 +39,8 @@ local CursorHasItem = _G.CursorHasItem
 local CursorUpdate = _G.CursorUpdate
 local GameTooltip = _G.GameTooltip
 local GetBankSlotCost = _G.GetBankSlotCost
-local GetCoinTextureString = _G.GetCoinTextureString
+local GetCoinTextureString = _G.C_CurrencyInfo.GetCoinTextureString
 local GetContainerItemID = C_Container and _G.C_Container.GetContainerItemID or _G.GetContainerItemID
-local GetContainerItemInfo = C_Container and _G.C_Container.GetContainerItemInfo or _G.GetContainerItemInfo
 local GetContainerNumFreeSlots = C_Container and _G.C_Container.GetContainerNumFreeSlots or _G.GetContainerNumFreeSlots
 local GetContainerNumSlots = C_Container and _G.C_Container.GetContainerNumSlots or _G.GetContainerNumSlots
 local geterrorhandler = _G.geterrorhandler
@@ -51,9 +50,7 @@ local GetNumBankSlots = _G.GetNumBankSlots
 local ipairs = _G.ipairs
 local IsInventoryItemLocked = _G.IsInventoryItemLocked
 local next = _G.next
-local NUM_REAGENTBAG_SLOTS = _G.NUM_REAGENTBAG_SLOTS
 local NUM_TOTAL_EQUIPPED_BAG_SLOTS = _G.NUM_TOTAL_EQUIPPED_BAG_SLOTS
-local NUM_BANKGENERIC_SLOTS = _G.NUM_BANKGENERIC_SLOTS
 local pairs = _G.pairs
 local pcall = _G.pcall
 local PickupBagFromSlot = _G.PickupBagFromSlot
@@ -182,7 +179,7 @@ do
 	swapFrame:SetScript('OnEvent', function(self, event, bagOrSlot)
 		addon:Debug(event, bagOrSlot)
 		if event == 'PLAYERBANKSLOTS_CHANGED' then
-			if bagOrSlot > 0 and bagOrSlot <= NUM_BANKGENERIC_SLOTS then
+			if bagOrSlot > 0 and bagOrSlot <= NUM_INVSLOTS then
 				bagOrSlot = -1
 			else
 				return
@@ -396,8 +393,8 @@ function bankButtonProto:Update()
 	self:UpdateStatus()
 end
 
-function bankButtonProto:PLAYERBANKSLOTS_CHANGED(event, bankSlot)
-	if bankSlot - NUM_BANKGENERIC_SLOTS == self.bag - NUM_BAG_SLOTS then
+function bankButtonProto:PLAYERBANKSLOTS_CHANGED(_, bankSlot)
+	if bankSlot - NUM_INVSLOTS == self.bag - NUM_BAG_SLOTS then
 		self:Update()
 	end
 end
@@ -465,9 +462,8 @@ function addon:CreateBagSlotPanel(container, name, bags, isBank)
 	self.buttons = {}
 	local buttonClass = isBank and bankButtonClass or bagButtonClass
 	local x = BAG_INSET
-	local height = 0
-	for i, bag in ipairs(bags) do
-		if bag ~= BACKPACK_CONTAINER and bag ~= BANK_CONTAINER and bag ~= REAGENTBANK_CONTAINER and bag ~= bag ~= REAGENTBAG_CONTAINER then
+	for _, bag in ipairs(bags) do
+		if bag ~= BACKPACK_CONTAINER and bag ~= BANK_CONTAINER and bag ~= bag ~= REAGENTBAG_CONTAINER then
 			local button = buttonClass:Create(bag)
 			button:SetParent(self)
 			button:SetPoint("TOPLEFT", x, -TOP_PADDING)

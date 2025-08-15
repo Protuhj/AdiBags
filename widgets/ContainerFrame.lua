@@ -34,7 +34,6 @@ local CreateFrame = _G.CreateFrame
 local format = _G.format
 local GetContainerFreeSlots = C_Container and _G.C_Container.GetContainerFreeSlots or _G.GetContainerFreeSlots
 local GetContainerItemID = C_Container and _G.C_Container.GetContainerItemID or _G.GetContainerItemID
-local GetContainerItemInfo = C_Container and _G.C_Container.GetContainerItemInfo or _G.GetContainerItemInfo
 local GetContainerItemLink = C_Container and _G.C_Container.GetContainerItemLink or _G.GetContainerItemLink
 local GetContainerNumFreeSlots = C_Container and _G.C_Container.GetContainerNumFreeSlots or _G.GetContainerNumFreeSlots
 local GetContainerNumSlots = C_Container and _G.C_Container.GetContainerNumSlots or _G.GetContainerNumSlots
@@ -45,14 +44,10 @@ local GetItemClassInfo = _G.C_Item.GetItemClassInfo
 local GetMerchantItemLink = _G.GetMerchantItemLink
 local ipairs = _G.ipairs
 local max = _G.max
-local min = _G.min
 local next = _G.next
-local NUM_BAG_SLOTS = _G.NUM_BAG_SLOTS
-local NUM_REAGENTBAG_SLOTS = _G.NUM_REAGENTBAG_SLOTS
-local NUM_TOTAL_EQUIPPED_BAG_SLOTS = _G.NUM_TOTAL_EQUIPPED_BAG_SLOTS
+local NUM_BAG_SLOTS = Constants.InventoryConstants.NumBagSlots
 local pairs = _G.pairs
 local PlaySound = _G.PlaySound
-local select = _G.select
 local strjoin = _G.strjoin
 local strsplit = _G.strsplit
 local tinsert = _G.tinsert
@@ -115,7 +110,6 @@ function containerProto:OnCreate(name, isBank, bagObject)
 	self.name = name
 	self.bagObject = bagObject
 	self.isBank = isBank
-	self.isReagentBank = false
 	self.firstLoad = true
 
 	self.buttons = {}
@@ -132,7 +126,6 @@ function containerProto:OnCreate(name, isBank, bagObject)
 	---@type Frame|Grid
 	self.Content = {}
 
-	local ids
 	for bagId in pairs(BAG_IDS[isBank and "BANK" or "BAGS"]) do
 		self.content[bagId] = { size = 0 }
 		tinsert(bagSlots, bagId)
@@ -216,10 +209,6 @@ function containerProto:OnCreate(name, isBank, bagObject)
 	self.Anchor = anchor
 
 	if addon.isRetail then
-		if self.isBank then
-			self:CreateReagentTabButton()
-			self:CreateDepositButton()
-		end
 		self:CreateSortButton()
 	end
 	self.CloseButton = self:CreateCloseButton()
@@ -276,10 +265,8 @@ function containerProto:OnCreate(name, isBank, bagObject)
 		if isBank then
 			if C_Container then
 				hooksecurefunc(C_Container, 'SortBankBags', ForceFullLayout)
-				hooksecurefunc(C_Container, 'SortReagentBankBags', ForceFullLayout)
 			else
 				hooksecurefunc('SortBankBags', ForceFullLayout)
-				hooksecurefunc('SortReagentBankBags', ForceFullLayout)
 			end
 		else
 			if C_Container then
@@ -340,29 +327,6 @@ end
 	return button
 end
 
-function containerProto:CreateDepositButton()
-	local button = self:CreateModuleAutoButton(
-		"D",
-		0,
-		REAGENTBANK_DEPOSIT,
-		L["auto-deposit"],
-		"autoDeposit",
-		function()
-			DepositReagentBank()
-			for bag in pairs(self:GetBagIds()) do
-				self:UpdateContent(bag)
-			end
-		end,
-		L["You can block auto-deposit ponctually by pressing a modified key while talking to the banker."]
-	)
-
-	if not IsReagentBankUnlocked() then
-		button:Hide()
-		button:SetScript('OnEvent', button.Show)
-		button:RegisterEvent('REAGENTBANK_PURCHASED')
-	end
-end
-
 function containerProto:CreateCloseButton()
 	return self:CreateModuleButton(
 		"X",
@@ -380,7 +344,7 @@ function containerProto:CreateSortButton()
 		10,
 		function()
 			addon:CloseAllBags()
-			self.bagObject:Sort(self.isReagentBank)
+			self.bagObject:Sort()
 			self.forceLayout = true
 		end,
 		L["(Blizzard's) Sort items"]
@@ -398,36 +362,6 @@ function containerProto:CreateLockButton()
 	)
 end
 
-function containerProto:CreateReagentTabButton()
-	local button
-	button = self:CreateModuleButton(
-		"R",
-		0,
-		function()
-			if not IsReagentBankUnlocked() then
-				PlaySound(SOUNDKIT.IG_MAINMENU_OPTION)
-				return StaticPopup_Show("CONFIRM_BUY_REAGENTBANK_TAB")
-			end
-			self:ShowReagentTab(not self.isReagentBank)
-		end,
-		function(_, tooltip)
-			if not IsReagentBankUnlocked() then
-				tooltip:AddLine(BANKSLOTPURCHASE, 1, 1, 1)
-				tooltip:AddLine(REAGENTBANK_PURCHASE_TEXT)
-				SetTooltipMoney(tooltip, GetReagentBankCost(), nil, COSTS_LABEL)
-				return
-			end
-			tooltip:AddLine(
-				format(
-					L['Click to swap between %s and %s.'],
-					REAGENT_BANK:lower(),
-					L["Bank"]:lower()
-				)
-			)
-		end
-	)
-end
-
 --------------------------------------------------------------------------------
 -- Scripts & event handlers
 --------------------------------------------------------------------------------
@@ -435,7 +369,6 @@ end
 function containerProto:GetBagIds()
 	if addon.isRetail then
 		return BAG_IDS[
-			self.isReagentBank and "REAGENTBANK_ONLY" or
 			self.isBank and "BANK_ONLY" or
 			"BAGS"
 		]
@@ -481,9 +414,6 @@ function containerProto:OnShow()
 end
 
 function containerProto:OnHide()
-	if self.isReagentBank then
-		self:ShowReagentTab(false)
-	end
 	containerParentProto.OnHide(self)
 	PlaySound(self.isBank and SOUNDKIT.IG_MAINMENU_CLOSE or SOUNDKIT.IG_BACKPACK_CLOSE)
 	self:PauseUpdates()
@@ -512,35 +442,6 @@ function containerProto:RefreshContents()
 		self:UpdateContent(bag)
 	end
 	self:UpdateButtons()
-end
-
-function containerProto:ShowReagentTab(show)
-	self:Debug('ShowReagentTab', show)
-
-	self.Title:SetText(show and REAGENT_BANK or L["Bank"])
-	self.BagSlotButton:SetEnabled(not show)
-	if show and self.BagSlotPanel:IsShown() then
-		self.BagSlotPanel:Hide()
-		self.BagSlotButton:SetChecked(false)
-	end
-	BankFrame.selectedTab = show and 2 or 1
-
-	local previousBags = self:GetBagIds()
-	self.isReagentBank = show
-
-	if self.isReagentBank then
-		self.Title:SetFontObject(addon.fonts.reagentBank.bagFont)
-	else
-		self.Title:SetFontObject(addon.fonts[string.lower(self.name)].bagFont)
-	end
-
-	for bag in pairs(previousBags) do
-		self:UpdateContent(bag)
-	end
-	self.forceLayout = true
-	self:RefreshContents()
-	self:UpdateSkin()
-	self:UpdateSectionFonts()
 end
 
 function containerProto:UpdateSectionFonts()
@@ -659,7 +560,7 @@ end
 --------------------------------------------------------------------------------
 
 function containerProto:UpdateSkin()
-	local backdrop, r, g, b, a = addon:GetContainerSkin(self.name, self.isReagentBank)
+	local backdrop, r, g, b, a = addon:GetContainerSkin(self.name)
 	self:SetBackdrop(backdrop)
 	self:ApplyBackdrop()
 	self:SetBackdropColor(r, g, b, a)
@@ -722,8 +623,11 @@ function containerProto:UpdateContent(bag)
 				end
 				-- Correctly catch battlepets and store their name.
 				if string.match(link, "|Hbattlepet:") then
-					local _, speciesID = strsplit(":", link)
-					name = C_PetJournal.GetPetInfoBySpeciesID(speciesID)
+					local _, speciesID = LinkUtil.SplitLink(link)
+					name = "Unknown Pet"
+					if speciesID then
+						name = C_PetJournal.GetPetInfoBySpeciesID(tonumber(speciesID))
+					end
 				end
 				count = addon:GetContainerItemStackCount(bag, slot) or 0
 			else
@@ -816,8 +720,6 @@ local function FilterByBag(slotData)
 		name = L['Backpack']
 	elseif bag == BANK_CONTAINER then
 		name = L['Bank']
-	elseif bag == REAGENTBANK_CONTAINER then
-		name = REAGENT_BANK
 	elseif bag <= NUM_BAG_SLOTS then
 		name = format(L["Bag #%d"], bag)
 	elseif addon.isRetail then

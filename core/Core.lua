@@ -29,22 +29,15 @@ local L = addon.L
 local _G = _G
 local ADDON_LOAD_FAILED = _G.ADDON_LOAD_FAILED
 local BANK_CONTAINER = _G.BANK_CONTAINER or ( Enum.BagIndex and Enum.BagIndex.Bank ) or -1
-local REAGENTBAG_CONTAINER = ( Enum.BagIndex and Enum.BagIndex.REAGENTBAG_CONTAINER ) or 5
 local CloseWindows = _G.CloseWindows
 local CreateFrame = _G.CreateFrame
 local format = _G.format
-local GetCVarBool = _G.GetCVarBool
-local geterrorhandler = _G.geterrorhandler
 local Settings = _G.Settings
 local LoadAddOn = _G.C_AddOns.LoadAddOn
-local next = _G.next
-local NUM_BANKGENERIC_SLOTS = _G.NUM_BANKGENERIC_SLOTS
 local pairs = _G.pairs
-local pcall = _G.pcall
 local print = _G.print
 local strmatch = _G.strmatch
 local strsplit = _G.strsplit
-local type = _G.type
 ---@diagnostic disable-next-line: deprecated
 local unpack = _G.unpack
 --GLOBALS>
@@ -62,7 +55,7 @@ local function DebugTable(t, prevKey)
 end
 --@end-debug@
 
-local bagKeys = {"backpack", "bank", "reagentBank"}
+local bagKeys = {"backpack", "bank"}
 function addon:OnInitialize()
 	-- Create the default font settings for each bag type.
 	for _, name in ipairs(bagKeys) do
@@ -122,9 +115,6 @@ function addon:OnEnable()
 	self:RegisterEvent('BAG_UPDATE')
 	self:RegisterEvent('BAG_UPDATE_DELAYED')
 	self:RegisterBucketEvent('PLAYERBANKSLOTS_CHANGED', 0.01, 'BankUpdated')
-	if addon.isRetail then
-		self:RegisterBucketEvent('PLAYERREAGENTBANKSLOTS_CHANGED', 0.01, 'ReagentBankUpdated')
-	end
 
 	self:RegisterEvent('PLAYER_LEAVING_WORLD', 'Disable')
 
@@ -132,7 +122,7 @@ function addon:OnEnable()
 	self:RegisterMessage('AdiBags_BagClosed', 'LayoutBags')
 	
 	-- Track most windows involving items
-	if addon.isRetail or addon.isWrath then
+	if addon.isRetail or addon.isWrath or addon.isCata then
 		self:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_SHOW', 'UpdateInteractingFrame')
 		self:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_HIDE', 'UpdateInteractingFrame')
 		-- TODO(lobato): This is a hack to fix a change in the timing of the interaction manager
@@ -231,7 +221,6 @@ end
 local prevSkinPreset = {
   BackpackColor = { 0, 0, 0, 1 },
   BankColor = { 0, 0, 0.5, 1 },
-  ReagentBankColor = { 0, 0.5, 0, 1 },
 }
 
 function addon:UpgradeProfile()
@@ -266,11 +255,6 @@ function addon:UpgradeProfile()
 			elseif key == "bank" and skin.BankColor then
 				for i, v in ipairs(prevSkinPreset.BankColor) do
 					v = skin.BankColor[i] or v
-					addon.db.profile.theme[key].color[i] = v
-				end
-			elseif key == "reagentBank" and skin.ReagentBankColor then
-				for i, v in ipairs(prevSkinPreset.ReagentBankColor) do
-					v = skin.ReagentBankColor[i] or v
 					addon.db.profile.theme[key].color[i] = v
 				end
 			end
@@ -335,20 +319,16 @@ end
 
 local updatedBags = {}
 local updatedBank = { [BANK_CONTAINER] = true }
-local updatedReagentBank = {}
-if addon.isRetail then
-	updatedReagentBank = { [REAGENTBANK_CONTAINER] = true }
-end
 
-function addon:BAG_UPDATE(event, bag)
+function addon:BAG_UPDATE(_, bag)
 	updatedBags[bag] = true
-	if addon.isWrath or addon.isRetail then
+	if addon.isRetail or addon.isWrath or addon.isCata then
 		self:SendMessage('AdiBags_BagUpdated', updatedBags)
 		wipe(updatedBags)
 	end
 end
 
-function addon:BAG_UPDATE_DELAYED(event)
+function addon:BAG_UPDATE_DELAYED(_)
 	self:SendMessage('AdiBags_BagUpdated', updatedBags)
 	wipe(updatedBags)
 end
@@ -356,17 +336,8 @@ end
 function addon:BankUpdated(slots)
 	-- Wrap several PLAYERBANKSLOTS_CHANGED into one AdiBags_BagUpdated message
 	for slot in pairs(slots) do
-		if slot > 0 and slot <= NUM_BANKGENERIC_SLOTS then
+		if slot > 0 and slot <= NUM_INVSLOTS then
 			return self:SendMessage('AdiBags_BagUpdated', updatedBank)
-		end
-	end
-end
-
-function addon:ReagentBankUpdated(slots)
-	-- Wrap several PLAYERREAGANBANKSLOTS_CHANGED into one AdiBags_BagUpdated message
-	for slot in pairs(slots) do
-		if slot > 0 and slot <= 98 then
-			return self:SendMessage('AdiBags_BagUpdated', updatedReagentBank)
 		end
 	end
 end
@@ -519,13 +490,8 @@ end
 
 local LSM = LibStub('LibSharedMedia-3.0')
 
-function addon:GetContainerSkin(containerName, isReagentBank)
-	local skin
-	if isReagentBank then
-		skin = addon.db.profile.theme.reagentBank
-	else
-		skin = addon.db.profile.theme[string.lower(containerName)]
-	end
+function addon:GetContainerSkin(containerName)
+	local skin = addon.db.profile.theme[string.lower(containerName)]
 
 	local r, g, b, a = unpack(skin.color, 1, 4)
 	local backdrop = addon.BACKDROP

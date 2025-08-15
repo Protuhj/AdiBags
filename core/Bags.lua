@@ -31,7 +31,6 @@ local IsBagOpen = _G.IsBagOpen
 local CloseBankFrame = C_Bank and _G.C_Bank.CloseBankFrame or _G.CloseBankFrame
 local SortBags = C_Container and _G.C_Container.SortBags or _G.SortBags
 local SortBankBags = C_Container and _G.C_Container.SortBankBags or _G.SortBankBags
-local SortReagentBankBags = C_Container and _G.C_Container.SortReagentBankBags or _G.SortReagentBankBags
 local ipairs = _G.ipairs
 local pairs = _G.pairs
 local setmetatable = _G.setmetatable
@@ -284,9 +283,6 @@ do
 
 	function bank:PreOpen()
 		self.hooks[BankFrame].Show(BankFrame)
-		if addon.isRetail and addon.db.profile.autoDeposit and not IsModifierKeyDown() then
-			DepositReagentBank()
-		end
 	end
 
 	function bank:PostClose()
@@ -294,13 +290,9 @@ do
 		CloseBankFrame()
 	end
 
-	function bank:Sort(isReagentBank)
+	function bank:Sort()
 		PlaySound(SOUNDKIT.UI_BAG_SORTING_01)
-		if isReagentBank then
-			SortReagentBankBags()
-		else
-			SortBankBags()
-		end
+		SortBankBags()
 	end
 
 	function bank:BankFrameGetRight()

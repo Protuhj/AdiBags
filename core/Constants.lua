@@ -34,13 +34,10 @@ addon.isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
 --<GLOBALS
 local _G = _G
 local BACKPACK_CONTAINER = _G.BACKPACK_CONTAINER or ( Enum.BagIndex and Enum.BagIndex.Backpack ) or 0
-local REAGENTBAG_CONTAINER = ( Enum.BagIndex and Enum.BagIndex.REAGENTBAG_CONTAINER ) or 5
 local BANK_CONTAINER = _G.BANK_CONTAINER or ( Enum.BagIndex and Enum.BagIndex.Bank ) or -1
-local REAGENTBANK_CONTAINER = _G.REAGENTBANK_CONTAINER or ( Enum.BagIndex and Enum.BagIndex.Reagentbank ) or -3
 local NUM_BAG_SLOTS = _G.NUM_BAG_SLOTS
-local NUM_REAGENTBAG_SLOTS = _G.NUM_REAGENTBAG_SLOTS
 local NUM_TOTAL_EQUIPPED_BAG_SLOTS = _G.NUM_TOTAL_EQUIPPED_BAG_SLOTS
-local NUM_BANKBAGSLOTS = _G.NUM_BANKBAGSLOTS
+local NUM_BANKBAGSLOTS = Constants.InventoryConstants.NumCharacterBankSlots
 local TRADE_GOODS = _G.Enum.ItemClass.Tradegoods
 local GetItemSubClassInfo = _G.C_Item.GetItemSubClassInfo
 local pairs = _G.pairs
@@ -51,7 +48,6 @@ local BAGS = { [BACKPACK_CONTAINER] = BACKPACK_CONTAINER }
 
 local BANK = {}
 local BANK_ONLY = {}
-local REAGENTBANK_ONLY = {}
 
 if addon.isRetail then
 
@@ -62,11 +58,8 @@ if addon.isRetail then
 	BANK_ONLY = { [BANK_CONTAINER] = BANK_CONTAINER }
 	for i = NUM_TOTAL_EQUIPPED_BAG_SLOTS + 1, NUM_TOTAL_EQUIPPED_BAG_SLOTS + NUM_BANKBAGSLOTS do BANK_ONLY[i] = i end
 
-	--- Reagent bank bags
-	REAGENTBANK_ONLY = { [REAGENTBANK_CONTAINER] = REAGENTBANK_CONTAINER }
-
 	-- All bank bags
-	for _, bags in ipairs { BANK_ONLY, REAGENTBANK_ONLY } do
+	for _, bags in ipairs { BANK_ONLY } do
 		for id in pairs(bags) do BANK[id] = id end
 	end
 else
@@ -86,7 +79,7 @@ addon.EXPANSION_MAP = {
 	[_G.LE_EXPANSION_CLASSIC] = _G.EXPANSION_NAME0,
 	[_G.LE_EXPANSION_BURNING_CRUSADE] = _G.EXPANSION_NAME1
 }
-if addon.isRetail or addon.isWrath then
+if addon.isRetail or addon.isWrath or addon.isCata then
 	addon.EXPANSION_MAP[_G.LE_EXPANSION_WRATH_OF_THE_LICH_KING] = _G.EXPANSION_NAME2
 	addon.EXPANSION_MAP[_G.LE_EXPANSION_CATACLYSM] = _G.EXPANSION_NAME3
 	addon.EXPANSION_MAP[_G.LE_EXPANSION_MISTS_OF_PANDARIA] = _G.EXPANSION_NAME4
@@ -94,10 +87,11 @@ if addon.isRetail or addon.isWrath then
 	addon.EXPANSION_MAP[_G.LE_EXPANSION_LEGION] = _G.EXPANSION_NAME6
 	addon.EXPANSION_MAP[_G.LE_EXPANSION_BATTLE_FOR_AZEROTH] = _G.EXPANSION_NAME7
 	addon.EXPANSION_MAP[_G.LE_EXPANSION_SHADOWLANDS] = _G.EXPANSION_NAME8
+	addon.EXPANSION_MAP[_G.LE_EXPANSION_DRAGONFLIGHT] = _G.EXPANSION_NAME9
 end
 
 if addon.isRetail then
-	addon.EXPANSION_MAP[_G.LE_EXPANSION_DRAGONFLIGHT] = _G.EXPANSION_NAME9
+	addon.EXPANSION_MAP[_G.LE_EXPANSION_WAR_WITHIN] = _G.EXPANSION_NAME10
 end
 
 -- Tradeskill subclassID -> subclassName
@@ -129,7 +123,6 @@ addon.BAG_IDS = {
 	BAGS = BAGS,
 	BANK = BANK,
 	BANK_ONLY = BANK_ONLY,
-	REAGENTBANK_ONLY = REAGENTBANK_ONLY,
 	ALL = ALL
 }
 
@@ -239,13 +232,6 @@ addon.DEFAULT_SETTINGS = {
 				insets = 3,
 				color = { 0, 0, 0.0, 1 },
 			},
-			reagentBank = {
-				background = "Blizzard Dialog Background",
-				border = "Blizzard Tooltip",
-				borderWidth = 16,
-				insets = 3,
-				color = { 0, 0.0, 0, 1 },
-			},
 			themes = {
 				default = {
 					backpack = {
@@ -266,15 +252,6 @@ addon.DEFAULT_SETTINGS = {
 						bagFont = addon.BagFontDefault,
 						sectionFont = addon.SectionFontDefault,
 
-					},
-					reagentBank = {
-						background = "Blizzard Dialog Background",
-						border = "Blizzard Tooltip",
-						borderWidth = 16,
-						insets = 3,
-						color = { 0, 0.0, 0, 1 },
-						bagFont = addon.BagFontDefault,
-						sectionFont = addon.SectionFontDefault,
 					},
 				},
 			},
@@ -316,4 +293,5 @@ Enum.ExpansionType = {
   LE_EXPANSION_BATTLE_FOR_AZEROTH = 7,
   LE_EXPANSION_SHADOWLANDS = 8,
   LE_EXPANSION_DRAGONFLIGHT = 9,
+  LE_EXPANSION_WAR_WITHIN = 10,
 }

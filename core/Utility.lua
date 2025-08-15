@@ -33,7 +33,6 @@ local floor = _G.floor
 local GameTooltip = _G.GameTooltip
 local GetContainerItemInfo = C_Container and C_Container.GetContainerItemInfo or GetContainerItemInfo
 local GetContainerItemQuestInfo = C_Container and C_Container.GetContainerItemQuestInfo or GetContainerItemQuestInfo
-local GetContainerNumFreeSlots = C_Container and C_Container.GetContainerNumFreeSlots or GetContainerNumFreeSlots
 local geterrorhandler = _G.geterrorhandler
 local GetItemFamily = _G.C_Item.GetItemFamily
 local GetItemInfo = _G.C_Item.GetItemInfo

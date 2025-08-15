@@ -570,7 +570,6 @@ local function GetOptions()
 					},
 					backpack = CreateBagOptions("Backpack", "backpack"),
 					bank = CreateBagOptions("Bank", "bank"),
-					reagentBank = CreateBagOptions("Reagent Bank", "reagentBank"),
 				}
 			},
 			items = {
@@ -729,17 +728,8 @@ local function GetOptions()
 		},
 		plugins = {}
 	}
-	if addon.isRetail then
-		options["args"]["bags"]["args"]["automatically"]["args"]["autoDeposit"] = {
-			name = L["Deposit reagents"],
-			desc = L["Automtically deposit all reagents into the reagent bank when you talk to the banker."],
-			type = 'toggle',
-			order = 110,
-			disabled = function() return not IsReagentBankUnlocked() end,
-		}
-	end
 	hooksecurefunc(addon, "OnModuleCreated", OnModuleCreated)
-	for name, module in addon:IterateModules() do
+	for _, module in addon:IterateModules() do
 		OnModuleCreated(addon, module)
 	end
 	UpdateFilterOrder()

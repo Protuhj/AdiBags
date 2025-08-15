@@ -44,7 +44,6 @@ local strsplit = _G.strsplit
 local strtrim = _G.strtrim
 local tinsert = _G.tinsert
 local tonumber = _G.tonumber
-local tostring = _G.tostring
 local tremove = _G.tremove
 local tsort = _G.table.sort
 local type = _G.type
@@ -56,7 +55,7 @@ local BuildSectionKey = addon.BuildSectionKey
 local SplitSectionKey = addon.SplitSectionKey
 
 local JUNK, FREE_SPACE, REAGENT_FREE_SPACE = GetItemSubClassInfo(_G.Enum.ItemClass.Miscellaneous, 0), L["Free space"], L["Reagent Free space"]
-local JUNK_KEY, FREE_SPACE_KEY, REAGENT_FREE_SPACE_KEY = BuildSectionKey(JUNK, JUNK), BuildSectionKey(FREE_SPACE, FREE_SPACE), BuildSectionKey(REAGENT_FREE_SPACE, REAGENT_FREE_SPACE)
+local JUNK_KEY, FREE_SPACE_KEY = BuildSectionKey(JUNK, JUNK), BuildSectionKey(FREE_SPACE, FREE_SPACE)
 
 local mod = addon:RegisterFilter("FilterOverride", 95, "ABEvent-1.0")
 mod.uiName = L['Manual filtering']
